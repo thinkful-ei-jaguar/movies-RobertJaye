@@ -8,12 +8,12 @@ const helmet = require('helmet');
 
 const app = express();
 
-app.use(morgan('dev'));
+const morganSetting = process.env.NODE_ENV === 'production' ? 'tiny' : 'common'
+app.use(morgan(morganSetting))
 app.use(helmet());
 app.use(cors());
 
 app.use(function validateBearerToken(req, res, next) {
-  console.log('validate bearer token middleware');
   const authToken = req.get('Authorization').split(' ')[1] || '';
   const apiToken = process.env.API_TOKEN;
   if (authToken !== apiToken) {
@@ -35,10 +35,9 @@ app.get('/movie', (req, res) => {
       .status(400)
       .send('country is not available');
   }
-  const co=MOVIES;
   let results = MOVIES;
   if (num && num !==0) {
-    results=co
+    results=results
       .filter(movie => {
         return movie.avg_vote >= num;
       })
@@ -47,14 +46,14 @@ app.get('/movie', (req, res) => {
       });
   }
   if (genre && genre !=='') {
-    results=co.filter(a=> a 
+    results=results.filter(a=> a 
       .genre
       .toLowerCase() 
       .includes(genre.toLowerCase())
     );
   }
   if (country && country !=='') {
-    results=co.filter(a=> a 
+    results=results.filter(a=> a 
       .country
       .toLowerCase() 
       .includes(country.toLowerCase())
@@ -64,7 +63,17 @@ app.get('/movie', (req, res) => {
   res.json(results);
 });
 
-const PORT = 8000;
+app.use((error, req, res, next) => {
+  let response
+  if (process.env.NODE_ENV === 'production') {
+    response = { error: { message: 'server error' }}
+  } else {
+    response = { error }
+  }
+  res.status(500).json(response)
+})
+
+const PORT = process.env.PORT || 8000
 
 app.listen(PORT, () => {
   console.log(`Server listening at http://localhost:${PORT}`);
